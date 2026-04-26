@@ -8,7 +8,7 @@ from validation import ResumeUploadInput, LinkedInUploadInput, GitHubInput
 from extraction import _extract_text, _fetch_github_deep
 from profile import build_candidate_profile
 from search import build_search_queries, run_parallel_search, DAYS_MAP
-from ranking import score_jobs, apply_h1b_filter
+from ranking import score_jobs
 
 st.set_page_config(page_title="Job Bot", page_icon="🔍", layout="centered")
 st.title("Job Bot")
@@ -46,9 +46,8 @@ with col4:
         index=1,
     )
 
-h1b = st.checkbox("Show H1B sponsorship indicator on results", value=True)
-if h1b:
-    st.caption("⚠️ H1B detection is AI-estimated and not reliable — always verify directly with the company.")
+h1b = False
+st.caption("🔬 H1B sponsorship detection — coming soon (Beta)")
 
 # ====================== BUTTONS ======================
 col_btn1, col_btn2 = st.columns([2, 1])
@@ -305,14 +304,7 @@ if search_clicked:
             scored = score_jobs(raw_jobs, candidate_profile, logger)
             st.write(f"✅ Scoring done — {len(scored)} jobs ranked ({time.time()-t_score:.1f}s)")
 
-            # ── 8. H1B filter + top 7 ─────────────────────────────────────────
-            if h1b:
-                st.write("🟢 Adding estimated H1B indicators...")
-                jobs = apply_h1b_filter(scored, h1b, logger)
-                st.write(f"✅ H1B indicators added")
-            else:
-                jobs = scored
-            jobs = jobs[:7]
+            jobs = scored[:7]
 
             if not jobs:
                 status.update(label="❌ No matches after H1B filter", state="error")
@@ -380,11 +372,6 @@ if search_clicked:
             with col_a:
                 st.subheader(title)
                 badge_parts = [f"**{company}**", location, f"Posted within {time_live}"]
-                if h1b:
-                    if h1b_likely:
-                        badge_parts.append("🟢 H1B likely")
-                    else:
-                        badge_parts.append("🔴 H1B unknown")
                 st.caption("  •  ".join(badge_parts))
                 st.progress(score / 100)
                 st.write(f"**Match: {score}%**")
