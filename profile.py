@@ -94,7 +94,7 @@ RETURN THIS EXACT JSON SCHEMA FILLED IN:
     try:
         msg = _claude.messages.create(
             model="claude-haiku-4-5",
-            max_tokens=4096,
+            max_tokens=8096,
             system="You are a precise candidate profile extractor. Return only valid JSON, no markdown, no explanation.",
             messages=[{"role": "user", "content": prompt}],
         )

@@ -292,7 +292,48 @@ def _remotive_fallback(role: str, logger) -> list[dict]:
         return []
 
 
+# ── Arbeit Now fallback (last resort) ─────────────────────────────────────────
+
+def _arbeitnow_fallback(role: str, logger) -> list[dict]:
+    """Last-resort fallback: Arbeit Now public API, always returns results."""
+    try:
+        resp = requests.get(
+            "https://arbeitnow.com/api/job-board-api",
+            params={"search": role, "remote": "true"},
+            timeout=12,
+        )
+        resp.raise_for_status()
+        raw_jobs = resp.json().get("data", [])
+
+        normalized = []
+        for j in raw_jobs:
+            desc_html = j.get("description", "")
+            desc_text = html.unescape(re.sub(r"<[^>]+>", " ", desc_html))[:500].strip()
+            normalized.append({
+                "title":      j.get("title", ""),
+                "company":    j.get("company_name", "Unknown Company"),
+                "url":        j.get("url", ""),
+                "summary":    desc_text,
+                "source":     "arbeitnow.com",
+                "query_type": "arbeitnow_fallback",
+                "query_used": f"Arbeit Now: {role}",
+            })
+
+        logger.step("arbeitnow_fallback", "ok", f"{len(normalized)} jobs from Arbeit Now")
+        return normalized
+    except Exception as e:
+        logger.step("arbeitnow_fallback", "failed", str(e))
+        return []
+
+
 # ── Parallel search pipeline ──────────────────────────────────────────────────
+
+def _extract_role(query_objects: list[dict]) -> str:
+    for q in query_objects:
+        if "role_based" in q.get("query_type", ""):
+            return q["query"].split(" jobs")[0].strip().strip('"')
+    return query_objects[0]["query"].split(" jobs")[0].strip() if query_objects else "engineer"
+
 
 def run_parallel_search(
     query_objects: list[dict],
@@ -301,30 +342,29 @@ def run_parallel_search(
 ) -> list[dict]:
     t0: float = time.time()
     raw_all: list[dict] = []
-    nia_failed = False
 
-    # ── Phase 1: Nia parallel search ─────────────────────────────────────────
+    # ── Tier 1: Nia ───────────────────────────────────────────────────────────
     try:
         with ThreadPoolExecutor(max_workers=3) as ex:
             futures = {ex.submit(_search_single_query, q, days_back, logger): q for q in query_objects}
             for fut in as_completed(futures):
                 raw_all.extend(fut.result())
+        logger.step("raw_result_count", "ok", f"{len(raw_all)} raw results from Nia")
     except Exception as e:
         logger.step("nia_parallel_error", "failed", str(e))
-        nia_failed = True
 
-    logger.step("raw_result_count", "ok", f"{len(raw_all)} raw results from Nia")
-
-    # ── Phase 2: Remotive fallback if Nia gave nothing ────────────────────────
-    if not raw_all or nia_failed:
-        logger.step("search_source", "skipped", "Nia returned 0 — switching to Remotive fallback")
-        role_guess = next(
-            (q["query"].split(" jobs")[0] for q in query_objects if "role_based" in q.get("query_type", "")),
-            query_objects[0]["query"].split(" jobs")[0] if query_objects else "engineer",
-        )
-        raw_all = _remotive_fallback(role_guess, logger)
-    else:
+    if raw_all:
         logger.step("search_source", "ok", "Nia")
+    else:
+        # ── Tier 2: Remotive ─────────────────────────────────────────────────
+        logger.step("search_source", "skipped", "Nia returned 0 — trying Remotive")
+        role = _extract_role(query_objects)
+        raw_all = _remotive_fallback(role, logger)
+
+        if not raw_all:
+            # ── Tier 3: Arbeit Now ───────────────────────────────────────────
+            logger.step("search_source", "skipped", "Remotive returned 0 — trying Arbeit Now")
+            raw_all = _arbeitnow_fallback(role, logger)
 
     job_like = [j for j in raw_all if looks_like_job(j)]
     logger.step("job_like_count", "ok",

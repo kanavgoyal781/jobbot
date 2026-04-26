@@ -26,6 +26,17 @@ def score_jobs(raw_jobs: list[dict], candidate_profile: dict, logger) -> list[di
         for i, j in enumerate(capped)
     )
 
+    years = candidate_profile.get("estimated_years_of_experience", {}).get("years") or 0
+    # Map years → appropriate seniority band
+    if years <= 2:
+        seniority_note = "Candidate is early-career (0-2 yrs). Prefer Junior/Mid roles. Heavily penalise Staff/Principal/Distinguished/12+ yr roles."
+    elif years <= 5:
+        seniority_note = "Candidate is mid-level (3-5 yrs). Prefer Mid/Senior roles. Penalise Staff/Principal/Lead roles that require 8+ years."
+    elif years <= 8:
+        seniority_note = "Candidate is senior (6-8 yrs). Prefer Senior/Lead roles. Penalise Staff/Distinguished roles requiring 10+ years."
+    else:
+        seniority_note = "Candidate is experienced (8+ yrs). Senior/Staff roles are appropriate."
+
     prompt = f"""You are an expert technical recruiter. Score each job listing against this candidate profile.
 
 CANDIDATE PROFILE:
@@ -40,15 +51,17 @@ Return ONLY a valid JSON array sorted by match_score descending (no markdown, no
     "title": "exact job title",
     "company": "company name",
     "match_score": 87,
-    "why": "One sentence explaining why this candidate is a strong fit.",
+    "why": "One sentence explaining the fit based on actual skills and experience.",
     "h1b_likely": true,
     "url": "job url"
   }}
 ]
 
 Rules:
-- match_score 0-100 based on genuine skill/experience overlap with the profile
+- match_score 0-100 based on genuine skill/experience overlap. If profile is missing, score max 20.
+- Seniority: {seniority_note}
 - h1b_likely = true for large companies, well-funded startups, or companies known to sponsor H1B
+- why must reference specific skills or experience from the profile, not generic statements
 - Include all {len(capped)} jobs
 - Return ONLY the JSON array, nothing else"""
 
