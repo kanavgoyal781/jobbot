@@ -29,19 +29,53 @@ def build_search_queries(
     location: str,
     h1b: bool,
 ) -> list[dict]:
-    kw = candidate_profile.get("search_keywords", {})
-    role_kws = " ".join(kw.get("role_keywords", [])[:3])
-    skill_kws = " ".join(kw.get("skill_keywords", [])[:4])
-    proj_kws = " ".join(kw.get("project_keywords", [])[:2])
+    kw       = candidate_profile.get("search_keywords", {})
+    skills   = candidate_profile.get("skills", {})
+    targets  = candidate_profile.get("likely_target_roles", [])
+
+    role_kws  = kw.get("role_keywords", [])
+    skill_kws = kw.get("skill_keywords", [])
+    ml_skills = skills.get("machine_learning", [])
+    llm_skills = skills.get("llm_ai", [])
+    top_skills = " ".join((ml_skills + llm_skills)[:3])
+
     h1b_sfx = "H1B visa sponsorship" if h1b else ""
 
-    queries = [
-        {"type": "baseline",   "query": f"{role} jobs {location} {h1b_sfx} 2025 hiring"},
-        {"type": "role_kw",    "query": f"{role_kws} jobs {location} 2025 hiring"},
-        {"type": "skill_kw",   "query": f"{skill_kws} engineer jobs {location}"},
-        {"type": "project_kw", "query": f"{proj_kws} {role} jobs {location}"},
+    # Alternative role titles drawn from candidate profile
+    alt_roles = [r for r in (role_kws + targets) if r.lower() != role.lower()][:4]
+
+    raw = [
+        # Core role — multiple phrasings
+        f"{role} jobs {location} 2025 hiring",
+        f'"{role}" {location} job opening apply now',
+        f"{role} {h1b_sfx} {location} 2025",
+
+        # Alt role titles
+        *[f"{r} jobs {location} 2025" for r in alt_roles[:3]],
+
+        # Skill-targeted
+        f"{top_skills} engineer jobs {location} 2025 hiring",
+        f"{' '.join(skill_kws[:3])} {role} {location}",
+
+        # Job board phrasing
+        f"{role} remote job apply {location} 2025",
+        f"{role} {location} new job posting this week",
+
+        # H1B explicit
+        f"{role} visa sponsorship {location} job 2025",
+        f"{role} {location} H1B sponsor hiring now",
     ]
-    return [q for q in queries if q["query"].strip()]
+
+    seen, queries = set(), []
+    for i, q in enumerate(raw):
+        q = q.strip()
+        if q and q not in seen:
+            seen.add(q)
+            queries.append({"type": f"q{i+1}", "query": q})
+        if len(queries) == 12:
+            break
+
+    return queries
 
 
 def run_parallel_search(
@@ -54,7 +88,7 @@ def run_parallel_search(
     raw_all: list[dict] = []
 
     try:
-        with ThreadPoolExecutor(max_workers=3) as ex:
+        with ThreadPoolExecutor(max_workers=6) as ex:
             futures = {ex.submit(_search_single_query, q, days_back, logger): q for q in query_objects}
             for fut in as_completed(futures):
                 raw_all.extend(fut.result())

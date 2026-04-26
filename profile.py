@@ -85,7 +85,7 @@ Rules:
 7. Return only valid JSON matching the schema exactly. No markdown, no explanation.
 
 CANDIDATE PROFILE TEXT:
-{profile_summary[:25000]}
+{profile_summary[:15000]}
 
 RETURN THIS EXACT JSON SCHEMA FILLED IN:
 {_PROFILE_SCHEMA}"""
@@ -94,7 +94,7 @@ RETURN THIS EXACT JSON SCHEMA FILLED IN:
     try:
         msg = _claude.messages.create(
             model="claude-haiku-4-5",
-            max_tokens=8096,
+            max_tokens=4096,
             system="You are a precise candidate profile extractor. Return only valid JSON, no markdown, no explanation.",
             messages=[{"role": "user", "content": prompt}],
         )
