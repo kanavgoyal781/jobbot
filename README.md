@@ -1,41 +1,48 @@
 # Job Bot — AI Job Scout
 
-Powered by **Nia** (Nozomio) + **Claude Haiku**. Upload your resume and LinkedIn, and it finds, scores, and ranks the best job matches for you — with H1B filtering built in.
+Powered by **Nia** (Nozomio) + **Claude Haiku** (Anthropic).
 
 ---
 
-## What it does
+## What it is
 
-1. Parses your resume, LinkedIn export, and GitHub profile
-2. Builds a structured candidate fingerprint using Claude
-3. Runs 4 targeted job searches in parallel via Nia
-4. Scores every listing against your actual skills and experience
-5. Filters to H1B-sponsoring companies before final ranking
-6. Returns your top 7 matches with match score and reasoning
+Job Bot is a personal AI job scout that finds and ranks the most relevant job openings for you based on your actual experience, skills, and projects — not just keywords. Upload your resume, LinkedIn export, and GitHub profile, tell it what role you want, and it returns your top 7 matches with a match score and a one-line explanation of why each role fits.
+
+## The problem it solves
+
+Job searching is manual, slow, and generic. Most job boards return hundreds of irrelevant results and have no idea who you actually are. Job Bot flips this: it first builds a deep candidate fingerprint from everything you share (resume, LinkedIn, GitHub code), then searches across multiple job platforms in parallel, and finally uses an AI recruiter to score each listing against your real profile — surfacing the roles most likely to actually want you.
+
+## How it works
+
+1. **Profile extraction** — Claude reads your resume, LinkedIn, and GitHub repos to extract a structured fingerprint: skills, years of experience, companies, strongest signals, and search keywords.
+2. **Smart parallel search** — up to 12 targeted queries run simultaneously across Nia web search, Greenhouse, Lever, and Ashby ATS platforms. If Nia's quota is hit, it automatically falls back to Remotive, then Arbeit Now — so results always come back.
+3. **AI scoring** — Claude scores every listing against your fingerprint, penalises seniority mismatches (won't recommend a Staff role to a 3-year engineer), and returns your top 7 ranked by genuine fit.
+
+---
 
 ## Features
 
-- **Smart queries** — searches are built from your profile keywords, not a generic string
-- **Parallel search** — 4 Nia queries run concurrently for speed
-- **Dead link filter** — skips expired job pages before scoring
-- **H1B hard filter** — applied before ranking, not after
-- **Live progress** — every step shows in real time with timing
+- Deep GitHub indexing — reads actual code, not just READMEs
+- 12 parallel search queries across role, skill, project, and platform dimensions
+- Three-tier search fallback: Nia → Remotive → Arbeit Now
+- Seniority-aware scoring — matches level to your years of experience
+- Live progress with per-step timing
+- LinkedIn fallback button on every result card
+- 🔬 H1B sponsorship detection — coming soon (Beta)
 
 ## How to use
 
 ```bash
-# 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Add your API keys to .env
+# Add keys to .env
 NIA_API_KEY=...
-GITHUB_TOKEN=...   # optional but recommended
+GITHUB_TOKEN=...   # optional but recommended — prevents rate limiting
 
-# 3. Run
 streamlit run app.py
 ```
 
-Upload your **resume PDF**, **LinkedIn export PDF** (Settings → Data Privacy → Get a copy of your data), and optionally your GitHub URL. Enter the role you want and hit **Find My Jobs**.
+Upload your **resume PDF**, **LinkedIn export PDF** (LinkedIn → Settings → Data Privacy → Get a copy of your data), and optionally your GitHub URL. Enter the role and location, hit **Find My Jobs**.
 
 ## Built for
 
