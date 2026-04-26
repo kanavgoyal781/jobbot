@@ -307,9 +307,9 @@ if search_clicked:
 
             # ── 8. H1B filter + top 7 ─────────────────────────────────────────
             if h1b:
-                st.write("🟢 Applying H1B sponsorship filter...")
+                st.write("🟢 Adding estimated H1B indicators...")
                 jobs = apply_h1b_filter(scored, h1b, logger)
-                st.write(f"✅ {len(jobs)} H1B-likely jobs → selecting top 7")
+                st.write(f"✅ H1B indicators added")
             else:
                 jobs = scored
             jobs = jobs[:7]
@@ -358,8 +358,14 @@ if search_clicked:
             icon = {"ok": "✅", "failed": "❌", "skipped": "⚠️", "info": "ℹ️"}.get(step["status"], "•")
             st.markdown(f"{icon} **{step['step']}** — {step['detail']}")
 
+    with st.expander("🔎 Generated Search Queries", expanded=False):
+        for q in queries:
+            st.markdown(f"**`{q['query_type']}`** — {q['query']}")
+            st.caption(q.get("why", ""))
+
     # ── Job results ───────────────────────────────────────────────────────────
     st.subheader(f"Top {len(jobs)} Job Matches")
+    st.caption("⚠️ Direct links may expire — use the LinkedIn button to find the live posting if Apply → is broken.")
 
     for job in jobs:
         title = job.get("title", "Unknown Role")
@@ -384,7 +390,10 @@ if search_clicked:
                 st.write(f"**Match: {score}%**")
                 st.write(f"💡 *{why}*")
             with col_b:
+                from urllib.parse import quote_plus
+                linkedin_url = f"https://www.linkedin.com/jobs/search/?keywords={quote_plus(title + ' ' + company)}&location={quote_plus(location)}"
                 if url:
                     st.link_button("Apply →", url, use_container_width=True)
+                st.link_button("🔗 LinkedIn", linkedin_url, use_container_width=True)
 
 st.caption("Built for OpenClaw Hackathon  •  Nia as the core brain  •  Eragon × Nozomio × AgentMail")

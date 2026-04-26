@@ -50,7 +50,7 @@ def _fetch_github_deep(username: str, logger) -> tuple[list[str], str]:
             logger.step("github_repos_list", "skipped", f"No public repos found for '{username}'")
             return [], ""
 
-        repos = sorted(repos, key=lambda r: r.get("stargazers_count", 0), reverse=True)[:5]
+        repos = sorted(repos, key=lambda r: r.get("stargazers_count", 0), reverse=True)[:3]
         logger.step("github_repos_list", "ok", f"Found {len(repos)} repos: {[r['name'] for r in repos]}")
 
         for repo in repos:
