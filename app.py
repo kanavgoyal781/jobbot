@@ -46,7 +46,9 @@ with col4:
         index=1,
     )
 
-h1b = st.checkbox("✅ Only companies that sponsor H1B", value=True)
+h1b = st.checkbox("Show H1B sponsorship indicator on results", value=True)
+if h1b:
+    st.caption("⚠️ H1B detection is AI-estimated and not reliable — always verify directly with the company.")
 
 # ====================== BUTTONS ======================
 col_btn1, col_btn2 = st.columns([2, 1])
@@ -372,10 +374,11 @@ if search_clicked:
             with col_a:
                 st.subheader(title)
                 badge_parts = [f"**{company}**", location, f"Posted within {time_live}"]
-                if h1b and h1b_likely:
-                    badge_parts.append("🟢 H1B Sponsor")
-                elif h1b and not h1b_likely:
-                    badge_parts.append("🔴 H1B Unknown")
+                if h1b:
+                    if h1b_likely:
+                        badge_parts.append("🟢 H1B likely")
+                    else:
+                        badge_parts.append("🔴 H1B unknown")
                 st.caption("  •  ".join(badge_parts))
                 st.progress(score / 100)
                 st.write(f"**Match: {score}%**")

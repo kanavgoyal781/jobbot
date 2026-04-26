@@ -1,5 +1,4 @@
 import time
-import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from clients import nia
@@ -22,17 +21,6 @@ def _search_single_query(query_obj: dict, days_back: int, logger) -> list[dict]:
         logger.step(f"nia_search_{query_type}", "failed", str(e))
         return []
 
-
-def _url_alive(url: str) -> bool:
-    """Returns True if the URL responds with a non-4xx status."""
-    try:
-        r = requests.head(url, allow_redirects=True, timeout=4)
-        if r.status_code == 405:
-            r = requests.get(url, allow_redirects=True, timeout=4, stream=True)
-            r.close()
-        return r.status_code < 400
-    except Exception:
-        return False
 
 
 def build_search_queries(
@@ -85,15 +73,4 @@ def run_parallel_search(
             seen.add(url)
             unique.append(j)
     logger.step("dedup", "ok", f"{len(unique)} unique from {len(raw_all)} raw")
-
-    if not unique:
-        return []
-
-    # Filter dead URLs in parallel
-    t1 = time.time()
-    with ThreadPoolExecutor(max_workers=10) as ex:
-        futures_health = {ex.submit(_url_alive, j.get("url", "")): j for j in unique}
-        live = [futures_health[fut] for fut in as_completed(futures_health) if fut.result()]
-    logger.step("url_health_check", "ok", f"{len(live)}/{len(unique)} URLs alive ({time.time()-t1:.1f}s)")
-
-    return live
+    return unique

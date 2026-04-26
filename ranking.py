@@ -80,14 +80,7 @@ Rules:
 
 
 def apply_h1b_filter(scored_jobs: list[dict], h1b: bool, logger) -> list[dict]:
-    """Hard-filters to H1B-likely jobs before final ranking. Falls back to unfiltered if none pass."""
-    if not h1b:
-        return scored_jobs
-
-    filtered = [j for j in scored_jobs if j.get("h1b_likely", False)]
-    if not filtered:
-        logger.step("h1b_filter", "skipped", "No H1B-likely jobs found — returning unfiltered")
-        return scored_jobs
-
-    logger.step("h1b_filter", "ok", f"{len(filtered)} H1B-likely jobs pass filter")
-    return filtered
+    """No hard filtering — H1B detection is heuristic only. Always returns full ranked list."""
+    h1b_count = len([j for j in scored_jobs if j.get("h1b_likely", False)])
+    logger.step("h1b_badge", "ok", f"{h1b_count}/{len(scored_jobs)} marked H1B-likely (heuristic)")
+    return scored_jobs
